@@ -203,7 +203,7 @@ The foundational building blocks used by Layers 0, 1, and 2.
 - [ ] **Phase 7 — Higher-Order & Polish**
   - [X] Implement `BigInt.Pow`.
   - [X] Implement `BigInt.Sqrt`.
-  - [ ] Implement `BigInt.Fact`.
+  - [X] Implement `BigInt.Fact`.
   - [ ] Range helpers (`BigInt.Min`, `BigInt.Max`).
   - [ ] Abuse-testing Excel engine (Tens of thousands of digits).
 
@@ -224,4 +224,4 @@ The library is implemented across three modules. First, `BigInt`, the public API
 
 ## Current Priority
 
-```
+Continue with designing `BigInt.Fact`, once satisfied with the design, implementation, and testing.
