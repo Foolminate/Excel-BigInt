@@ -200,12 +200,12 @@ The foundational building blocks used by Layers 0, 1, and 2.
   - [X] Implement `BigInt.Mod`.
   - [X] `#DIV/0!` edge case hardening.
   - [X] Implement internal Newton-Raphson division and logic to choose when it is used.
-- [ ] **Phase 7 — Higher-Order & Polish**
+- [X] **Phase 7 — Higher-Order & Polish**
   - [X] Implement `BigInt.Pow`.
   - [X] Implement `BigInt.Sqrt`.
   - [X] Implement `BigInt.Fact`.
-  - [ ] Range helpers (`BigInt.Min`, `BigInt.Max`).
-  - [ ] Abuse-testing Excel engine (Tens of thousands of digits).
+  - [X] Range helpers (`BigInt.Min`, `BigInt.Max`).
+  - [X] Abuse-testing Excel engine (Tens of thousands of digits).
 
 ## Implementation
 The library is implemented across three modules. First, `BigInt`, the public API. Second, `core_BigInt`, the private API. Third, `test_BigInt`, a private benchmarking suite. Excel modules automatically prepend the module name and a period onto its functions. For example, `UAdd`is part of the private API, which can call it without the prefix. The Excel grid and other modules must use `core_BigInt.UAdd` instead.
@@ -224,4 +224,13 @@ The library is implemented across three modules. First, `BigInt`, the public API
 
 ## Current Priority
 
-Continue with designing `BigInt.Fact`, once satisfied with the design, implementation, and testing.
+Explore opportunities to add more features:
+- LCM
+- GCD
+- ModPow
+- BitLength
+- TestBit
+- IsPrime
+- ModInverse
+- MaybePrime?
+- Log
