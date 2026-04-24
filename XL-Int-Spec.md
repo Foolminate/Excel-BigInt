@@ -14,7 +14,7 @@ The goal is to push Excel’s formula engine to its functional limits. The libra
 If a design choice forces a trade-off, the following hierarchy applies absolutely:
 
 1. **Correctness:** Identical inputs must always produce deterministic, identical outputs. No reliance on volatile functions. No floating-point approximations.
-2. **Completeness:** If an operation is m/athematically definable and can be expressed with Excel formulas, it is in scope. No feature is excluded solely on the basis of calculation time.
+2. **Completeness:** If an operation is mathematically definable and can be expressed with Excel formulas, it is in scope. No feature is excluded solely on the basis of calculation time.
 3. **Performance:** Best-effort optimizations are applied (favoring vectorized operations like `REDUCE`, `MAP`, `BYROW`, and native array expansions over recursion and reallocation), *provided they do not compromise correctness or completeness*.
 4. **Clarity:** Excel LAMBDAs are inherently dense. Algorithmic accuracy and single-responsibility composition outrank short-term readability.
 
@@ -102,9 +102,49 @@ The active crossover threshold ($T$) between these algorithms is strictly empiri
 
 ## Core Data Model & Conventions
 
-### Naming & Namespaces
-- **Public API:** Uses the `BigInt.` prefix and PascalCase (e.g., `BigInt.Sum`, `BigInt.Compare`) to cleanly differentiate from native uppercase Excel functions and prevent shadowing.
-- **Internal Kernels:** Private helper functions are prefixed with `internal.` (e.g., `core_BigInt.UAdd`, `core_BigInt.SafeK`).
+Excel’s native formula bar and the Advanced Formula Environment (AFE) present unique constraints. The following standards ensure the library remains maintainable internally while providing a pristine, readable UX for the end-user.
+
+### 1. Naming Conventions
+
+**Public API (Layer 0): Terse & Standardized**
+Public functions are used to compose complex mathematical formulas. Verbose names create unreadable, screen-breaking syntax.
+- **Namespaces:** Uses the `BigInt.` prefix and PascalCase (e.g., `BigInt.Sum`, `BigInt.Compare`) to cleanly differentiate from native uppercase Excel functions and prevent shadowing
+- **Internal Kernels:** Private helper functions are prefixed with `core_.` (e.g., `core_BigInt.UAdd`, `core_BigInt.SafeK`).
+- **Math Primitives:** Use standard C/Python abbreviations (`BigInt.Add`, `BigInt.Mul`, `BigInt.Pow`, `BigInt.Fact`).
+- **Clarity over Extreme Brevity:** Expand ambiguous mathematical notation where abbreviations cause confusion. Use `BigInt.Combinations` instead of `BigInt.nCr`.
+- **Explicit Conversions:** Use fully qualified type names for I/O boundaries (`BigInt.ToHex`, `BigInt.FromBinary`).
+
+**Internal Variables: The Dual-Context Rule**
+Variable verbosity depends strictly on the architectural layer.
+* **Layer 2 (Mathematical Kernels):** Stick to standard academic nomenclature. Use `a`, `b`, `q` (quotient), `r` (remainder), `n` (limit), and `k` (radix chunk). This minimizes cognitive friction when mapping the code to reference algorithms like Newton-Raphson or Prime Swing.
+* **Layer 1 & 0 (Routers/Orchestrators):** Use explicit, highly descriptive names for state and shape management. Use `limbs_a` (denoting a little-endian array), `initial_state`, `is_same_sign`, or `needs_correction`.
+
+### 2. Documentation & Commenting
+
+**Docstrings (The Tooltip Contract)**
+Excel's native formula tooltip truncates text aggressively. Docstrings must be ruthlessly concise. JSDoc `@param` tags are strictly banned, as Excel renders them as raw, unformatted text in the grid, destroying the UX.
+* **Line 1:** State exactly what the function returns.
+* **Line 2 (Optional):** Define parameter types and context using terse bracket notation `[var_name: Type]`.
+* *Example:* ```excel
+  /**
+   * Returns packed 1D array: [Len_R, Remainder_Limbs, Quotient_Limbs].
+   * limbs_a: Array, limbs_b: Array, k: int.
+   */
+   ```
+### Inline Comments: *Why*—Not *What*
+Do not narrate syntax or explicitly list sequential steps if the code already speaks for itself. Comments exist solely to explain invisible constraints.
+
+- Explain Excel-specific workarounds (e.g., vertical state packing to bypass REDUCE accumulator limits).
+- Highlight mathematical boundary risks, chunking alignments, or orientation flips (e.g., reversing an array to Big-Endian for a top-down iteration).
+
+### Visual Organization
+Use standard ASCII dividers to break internal modules into distinct functional regions, creating visual bulkheads for easier navigation within the AFE.
+
+```excel
+// ========================================== //
+//              Division Kernels              //
+// ========================================== //
+```
 
 ### Canonical Form Rules
 - **Input tolerance:** Input strings may contain leading zeros (common in fixed-width data).
@@ -206,6 +246,36 @@ The foundational building blocks used by Layers 0, 1, and 2.
   - [X] Implement `BigInt.Fact`.
   - [X] Range helpers (`BigInt.Min`, `BigInt.Max`).
   - [X] Abuse-testing Excel engine (Tens of thousands of digits).
+- [ ] **Phase 8 — Architectural Polish & Internal Diagnostics**
+  - [ ] Confirm Layers 1-3 adhere to the little-endian array contract.
+  - [ ] Align variable nomenclature and comments to the specification.
+  - [ ] Align public and private docstrings to the specification.
+  - [ ] Implement `core_BigInt.DumpState` and other debugging tools to aid troubleshooting.
+- [ ] **Phase 9 — Targeted Hardening & Boundary Stress Testing**
+  - [ ] Develop automated fuzz-testing for the absolute 32,766-character string ceiling.
+  - [ ] Validate garbage collection stability during the hybrid `DivRouter` crossover under massive load.
+  - [ ] Hard-test the 14-digit `SafeK` boundary against silent IEEE-754 precision bleeding.
+- [ ] **Phase 10 — The 48-Bit Binary Engine & Base-N I/O**
+  - [ ] Implement `core_BigInt.ToBase2Array`: Converts base-10 strings to little-endian arrays of 48-bit integers via a Hybrid Radix Router.
+  - [ ] Implement `core_BigInt.FromBase2Array`: Merges 48-bit integer arrays back to base-10 strings.
+  - [ ] Implement `BigInt.ToHex` and `BigInt.FromHex`.
+  - [ ] Implement `BigInt.ToBinary` and `BigInt.FromBinary` (Public text boundary wrappers).
+- [ ] **Phase 11 — Native Bitwise Operations**
+  - [ ] Implement `BigInt.BitAnd`, `BigInt.BitOr`, and `BigInt.BitXor` (Vectorized natively across 48-bit arrays to prevent boundary shear).
+  - [ ] Implement `BigInt.ShiftLeft` and `BigInt.ShiftRight`.
+  - [ ] Implement `BigInt.TestBit` and `BigInt.BitLength`.
+- [ ] **Phase 12 — Binary-Optimized Algorithms**
+  - [ ] Implement `BigInt.GCD` utilizing Stein’s Algorithm (Binary GCD) via the new bitwise primitives, bypassing the division router.
+  - [ ] Implement `BigInt.LCM` natively via `(A * B) / GCD(A, B)`.
+  - [ ] Implement `BigInt.ModPow` (Modular Exponentiation) utilizing bitwise shifts for the exponent and continuous modulo wrapping.
+  - [ ] Implement `BigInt.ModInverse` via the Extended Euclidean algorithm.
+- [ ] **Phase 13 — Combinatorics, Probability & Cryptography**
+  - [ ] Implement `BigInt.RandBetween(min, max)` ensuring uniform mathematical distribution without modulo bias.
+  - [ ] Implement `BigInt.nCr` (Combinations) and `BigInt.nPr` (Permutations) mapped through the Prime Swing factorial kernel.
+  - [ ] Implement `BigInt.IsPrime` using a deterministic Miller-Rabin test powered by the `ModPow` kernel.
+- [ ] **Phase 14 — Serialization & Formatted Output**
+  - [ ] Implement `BigInt.Format` to cleanly inject thousands separators or custom delimiters into output strings.
+  - [ ] Implement `BigInt.ChunkExport` to automatically slice outputs exceeding 32,767 characters across multiple contiguous cells.
 
 ## Implementation
 The library is implemented across three modules. First, `BigInt`, the public API. Second, `core_BigInt`, the private API. Third, `test_BigInt`, a private benchmarking suite. Excel modules automatically prepend the module name and a period onto its functions. For example, `UAdd`is part of the private API, which can call it without the prefix. The Excel grid and other modules must use `core_BigInt.UAdd` instead.
@@ -223,14 +293,4 @@ The library is implemented across three modules. First, `BigInt`, the public API
 ```
 
 ## Current Priority
-
-Explore opportunities to add more features:
-- LCM
-- GCD
-- ModPow
-- BitLength
-- TestBit
-- IsPrime
-- ModInverse
-- MaybePrime?
-- Log
+Continue with the roadmap
