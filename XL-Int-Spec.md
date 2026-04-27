@@ -289,15 +289,15 @@ The library is implemented across three modules. First, `BigInt`, the public API
 
 /**
  * Normalises a BigInt string. Strips leading zeros, resolves "-0" to "0", and throws #VALUE! on invalid characters.
- * @param big_int The BigInt string.
+ * @param input The BigInt string.
  */
-Norm = LAMBDA(big_int,
+Norm = LAMBDA(input,
     LET(
-        str, IF(OR(ISOMITTED(big_int), big_int = ""), "0", big_int & ""),
-        is_valid, REGEXTEST(str, "^-?\d+$"),
-        stripped, REGEXREPLACE(str, "^(-?)0+(?=\d)", "$1"),
+        str_input, IF(OR(ISOMITTED(input), input = ""), "0", input & ""),
+        is_value_format, REGEXTEST(str_input, "^-?\d+$"),
+        str_norm, REGEXREPLACE(str_input, "^(-?)0+(?=\d)", "$1"),
 
-        IF(NOT(is_valid), VALUE("#VALUE!"), IF(stripped = "-0", "0", stripped))
+        IF(NOT(is_value_format), VALUE("#VALUE!"), IF(str_norm = "-0", "0", str_norm))
     )
 );
 
@@ -305,10 +305,10 @@ Norm = LAMBDA(big_int,
  * Returns the sign of a BigInt: 1 (positive), -1 (negative), or 0 (zero).
  * @param big_int The BigInt string.
  */
-Sign = LAMBDA(big_int,
+Sign = LAMBDA(input,
     LET(
-        normed, Norm(big_int),
-        SWITCH(LEFT(normed),
+        str_norm, Norm(input),
+        SWITCH(LEFT(str_norm),
             "0", 0,
             "-", -1,
             1
@@ -320,69 +320,69 @@ Sign = LAMBDA(big_int,
 
 /**
  * Returns TRUE if the BigInt is exactly zero.
- * @param big_int The BigInt string.
+ * @param input The BigInt string.
  */
-IsZero = LAMBDA(big_int, Norm(big_int) = "0");
+IsZero = LAMBDA(input, Norm(input) = "0");
 
 /**
  * Returns TRUE if the BigInt is negative.
- * @param big_int The BigInt string.
+ * @param input The BigInt string.
  */
-IsNeg = LAMBDA(big_int, LEFT(Norm(big_int)) = "-");
+IsNeg = LAMBDA(input, LEFT(Norm(input)) = "-");
 
 /**
  * Returns TRUE if the BigInt is even.
- * @param big_int The BigInt string.
+ * @param input The BigInt string.
  */
-IsEven = LAMBDA(big_int, ISEVEN(VALUE(RIGHT(Norm(big_int)))));
+IsEven = LAMBDA(input, ISEVEN(VALUE(RIGHT(Norm(input)))));
 
 /**
  * Returns TRUE if the BigInt is odd.
- * @param big_int The BigInt string.
+ * @param input The BigInt string.
  */
-IsOdd = LAMBDA(big_int, ISODD(VALUE(RIGHT(Norm(big_int)))));
+IsOdd = LAMBDA(input, ISODD(VALUE(RIGHT(Norm(input)))));
 
 /**
  * Returns the unsigned magnitude of a BigInt string (absolute value).
- * @param big_int The BigInt string.
+ * @param input The BigInt string.
  */
-Abs = LAMBDA(big_int,
+Abs = LAMBDA(input,
     LET(
-        num, Norm(big_int),
-        IF(LEFT(num) = "-", MID(num, 2, LEN(num) - 1), num)
+        str_norm, Norm(input),
+        IF(LEFT(str_norm) = "-", MID(str_norm, 2, LEN(str_norm) - 1), str_norm)
     )
 );
 
 /**
  * Compares two BigInt strings. Returns 1 (a > b), -1 (a < b), or 0 (a = b).
  * Evaluates signs and lengths. If identical, delegates to native limb array comparison.
- * @param big_int_a The first BigInt string.
- * @param big_int_b The second BigInt string.
+ * @param input_a The first BigInt string.
+ * @param input_b The second BigInt string.
  */
-Compare = LAMBDA(big_int_a, big_int_b,
+Compare = LAMBDA(input_a, input_b,
     LET(
-        norm_a, Norm(big_int_a),
-        norm_b, Norm(big_int_b),
-        sign_a, BigInt.Sign(norm_a),
-        sign_b, Bigint.Sign(norm_b),
+        str_norm_a, Norm(input_a),
+        str_norm_b, Norm(input_b),
+        sign_a, BigInt.Sign(str_norm_a),
+        sign_b, Bigint.Sign(str_norm_b),
 
         IF(sign_a <> sign_b,
             SIGN(sign_a - sign_b),
             IF(sign_a = 0,
                 0,
                 LET(
-                    len_a, LEN(norm_a),
-                    len_b, LEN(norm_b),
+                    len_a, LEN(str_norm_a),
+                    len_b, LEN(str_norm_b),
 
                     IF(len_a <> len_b,
                         SIGN(len_a - len_b) * sign_a,
                         LET(
                             k, core_BigInt.SafeK("ADD"),
-                            limbs_a, core_BigInt.Split(BigInt.Abs(norm_a), k),
-                            limbs_b, core_BigInt.Split(BigInt.Abs(norm_b), k),
-                            mag_comparison, core_BigInt.UCompare(limbs_a, limbs_b),
+                            limbs_a, core_BigInt.Split(BigInt.Abs(str_norm_a), k),
+                            limbs_b, core_BigInt.Split(BigInt.Abs(str_norm_b), k),
+                            magnitude_comparison, core_BigInt.UCompare(limbs_a, limbs_b),
 
-                            mag_comparison * sign_a
+                            magnitude_comparison * sign_a
                         )
                     )
                 )
@@ -395,81 +395,82 @@ Compare = LAMBDA(big_int_a, big_int_b,
 
 /**
  * Adds two BigInt strings.
- * @param big_int_a The first BigInt string.
- * @param big_int_b The second BigInt string.
+ * @param input_a The first BigInt string.
+ * @param input_b The second BigInt string.
  */
-Add = LAMBDA(big_int_a, big_int_b,
+Add = LAMBDA(input_a, input_b,
     LET(
-        norm_a, Norm(big_int_a),
-        norm_b, Norm(big_int_b),
-        sign_a, Bigint.Sign(norm_a),
-        sign_b, BigInt.Sign(norm_b),
+        str_norm_a, Norm(input_a),
+        str_norm_b, Norm(input_b),
+        sign_a, Bigint.Sign(str_norm_a),
+        sign_b, BigInt.Sign(str_norm_b),
 
         k, core_BigInt.SafeK("ADD"),
-        limbs_a, core_BigInt.Split(BigInt.Abs(norm_a), k),
-        limbs_b, core_BigInt.Split(BigInt.Abs(norm_b), k),
+        limbs_a, core_BigInt.Split(BigInt.Abs(str_norm_a), k),
+        limbs_b, core_BigInt.Split(BigInt.Abs(str_norm_b), k),
 
-        routed, core_BigInt.AddSubRouter(limbs_a, limbs_b, sign_a, sign_b, k),
-        final_sign, CHOOSEROWS(routed, -1),
-        final_limbs, DROP(routed, -1),
+        packed_result, core_BigInt.AddSubRouter(limbs_a, limbs_b, sign_a, sign_b, k),
+        final_sign, CHOOSEROWS(packed_result, -1),
+        final_limbs, DROP(packed_result, -1),
 
-        merged, core_BigInt.Merge(final_limbs, k),
+        str_merged, core_BigInt.Merge(final_limbs, k),
 
-        IF(final_sign = -1, "-" & merged, merged)
+        IF(final_sign = -1, "-" & str_merged, str_merged)
     )
 );
 
 /**
  * Subtracts the second BigInt string from the first (A - B).
- * @param big_int_a The minuend BigInt string.
- * @param big_int_b The subtrahend BigInt string.
+ * @param input_a The minuend BigInt string.
+ * @param input_b The subtrahend BigInt string.
  */
-Sub = LAMBDA(big_int_a, big_int_b,
+Sub = LAMBDA(input_a, input_b,
     LET(
-        norm_b, Norm(big_int_b),
+        str_norm_b, Norm(input_b),
 
         // Invert the sign of B at the text level
-        inv_b, IF(norm_b = "0", "0",
-            IF(LEFT(norm_b) = "-",
-                MID(norm_b, 2, LEN(norm_b)),
-                "-" & norm_b
+        str_inverse_b, IF(str_norm_b = "0", "0",
+            IF(LEFT(str_norm_b) = "-",
+                MID(str_norm_b, 2, LEN(str_norm_b)),
+                "-" & str_norm_b
             )
         ),
 
         // Pass to Add
-        Add(big_int_a, inv_b)
+        Add(input_a, str_inverse_b)
     )
 );
 
 /**
  * Sums an array or range of BigInt strings via vectorized group matrices.
- * @param range A contiguous range or array of BigInt strings.
+ * @param input_range A contiguous range or array of BigInt strings.
  */
-Sum = LAMBDA(range,
+Sum = LAMBDA(input_range,
     LET(
-        flat, TOROW(range, 1),
+        // Setup for little-endian alignment in matrix sum
+        flattened_input, TOROW(input_range, 1),
 
-        IF(OR(ISERROR(flat), COLUMNS(flat) = 0), "0",
+        IF(OR(ISERROR(flattened_input), COLUMNS(flattened_input) = 0), "0",
             LET(
-                norms, MAP(flat, LAMBDA(x, Norm(x))),
-                signs, MAP(LEFT(norms), LAMBDA(x, IF(x = "0", 0, if(x = "-", -1, 1)))),
-                abs_norms, MAP(norms, signs, LAMBDA(x, sign, IF(sign = -1, MID(x, 2, LEN(x)-1), x))),
+                str_norms, MAP(flattened_input, LAMBDA(x, Norm(x))),
+                arr_signs, MAP(LEFT(str_norms), LAMBDA(x, IF(x = "0", 0, if(x = "-", -1, 1)))),
+                str_abs, MAP(str_norms, arr_signs, LAMBDA(x, sign, IF(sign = -1, MID(x, 2, LEN(x)-1), x))),
 
-                pos_strs, FILTER(abs_norms, signs = 1, {"0"}),
-                neg_strs, FILTER(abs_norms, signs = -1, {"0"}),
+                str_pos, FILTER(str_abs, arr_signs = 1, {"0"}),
+                str_negs, FILTER(str_abs, arr_signs = -1, {"0"}),
 
-                unified_k, core_BigInt.SafeK("ADD", COLUMNS(flat)),
+                unified_k, core_BigInt.SafeK("ADD", COLUMNS(flattened_input)),
 
-                pos_limbs, core_BigInt.UMatrixSum(pos_strs, unified_k),
-                neg_limbs, core_BigInt.UMatrixSum(neg_strs, unified_k),
+                limbs_pos_sum, core_BigInt.UMatrixSum(str_pos, unified_k),
+                limbs_neg_sum, core_BigInt.UMatrixSum(str_negs, unified_k),
 
-                routed, core_BigInt.AddSubRouter(pos_limbs, neg_limbs, 1, -1, unified_k),
-                final_sign, CHOOSEROWS(routed, -1),
-                final_limbs, DROP(routed, -1),
+                packed_result, core_BigInt.AddSubRouter(limbs_pos_sum, limbs_neg_sum, 1, -1, unified_k),
+                final_sign, CHOOSEROWS(packed_result, -1),
+                final_limbs, DROP(packed_result, -1),
 
-                merged, core_BigInt.Merge(final_limbs, unified_k),
+                str_merged, core_BigInt.Merge(final_limbs, unified_k),
 
-                IF(final_sign = -1, "-" & merged, merged)
+                IF(final_sign = -1, "-" & str_merged, str_merged)
             )
         )
     )
@@ -477,36 +478,33 @@ Sum = LAMBDA(range,
 
 /**
  * Multiplies two BigInt strings.
- * @param big_int_a The first BigInt string.
- * @param big_int_b The second BigInt string.
+ * @param input_a The first BigInt string.
+ * @param input_b The second BigInt string.
  */
-Mul = LAMBDA(big_int_a, big_int_b,
+Mul = LAMBDA(input_a, input_b,
     LET(
-        norm_a, Norm(big_int_a),
-        norm_b, Norm(big_int_b),
-        sign_a, BigInt.Sign(norm_a),
-        sign_b, BigInt.Sign(norm_b),
-        len_a, LEN(norm_a),
-        len_b, LEN(norm_b),
+        str_norm_a, Norm(input_a),
+        str_norm_b, Norm(input_b),
+        sign_a, BigInt.Sign(str_norm_a),
+        sign_b, BigInt.Sign(str_norm_b),
+        len_a, LEN(str_norm_a) - IF(sign_a = -1, 1, 0),
+        len_b, LEN(str_norm_b) - IF(sign_b = -1, 1, 0),
 
-        // Short-circuit: 0 multiplied by anything is 0
+        // Product of with 0 is 0
         IF(OR(sign_a = 0, sign_b = 0), "0",
+        // The result will exceed char limit
         IF(len_a + len_b > 32766, #NUM!,
             LET(
-                // Calculate dynamic safe K based on the shortest string
                 k, core_BigInt.SafeK("MUL", MIN(len_a, len_b)),
+                limbs_a, core_BigInt.Split(BigInt.Abs(str_norm_a), k),
+                limbs_b, core_BigInt.Split(BigInt.Abs(str_norm_b), k),
 
-                // Split absolute strings into little-endian arrays
-                limbs_a, core_BigInt.Split(BigInt.Abs(norm_a), k),
-                limbs_b, core_BigInt.Split(BigInt.Abs(norm_b), k),
-
-                // Calculate magnitude and resolve sign
                 final_limbs, core_BigInt.UMul(limbs_a, limbs_b, k),
                 final_sign, sign_a * sign_b,
 
-                merged, core_BigInt.Merge(final_limbs, k),
+                str_merged, core_BigInt.Merge(final_limbs, k),
 
-                IF(final_sign = -1, "-" & merged, merged)
+                IF(final_sign = -1, "-" & str_merged, str_merged)
             )
         ))
     )
@@ -519,7 +517,7 @@ Mul = LAMBDA(big_int_a, big_int_b,
  * @param [min_digits] minimum number of digits, default 16 (min 1 digit)
  * @param [max_digits] maximum number of digits, default 50 (max 32,767 chars, including sign)
  */
-RandBigIntArray = LAMBDA([num_rows], [num_cols], [min_digits], [max_digits],
+RandArray = LAMBDA([num_rows], [num_cols], [min_digits], [max_digits],
     LET(
         n_rows, IF(ISOMITTED(num_rows), 1, num_rows),
         n_cols, IF(ISOMITTED(num_cols), 1, num_cols),
@@ -528,9 +526,9 @@ RandBigIntArray = LAMBDA([num_rows], [num_cols], [min_digits], [max_digits],
 
         MAP(RANDARRAY(n_rows, n_cols, min_len, max_len, TRUE), LAMBDA(length,
             LET(
-                sign, CHOOSE(RANDBETWEEN(1, 2), "", "-"),
-                digits, CONCAT(RANDARRAY(1, length, 0, 9, TRUE)),
-                sign & REGEXREPLACE(digits, "^0*", "")
+                sign_prefix, CHOOSE(RANDBETWEEN(1, 2), "", "-"),
+                rand_digits, CONCAT(RANDARRAY(1, length, 0, 9, TRUE)),
+                sign_prefix & REGEXREPLACE(rand_digits, "^0*", "")
             )
         ))
     )
@@ -539,71 +537,68 @@ RandBigIntArray = LAMBDA([num_rows], [num_cols], [min_digits], [max_digits],
 /**
  * Divides the first BigInt by the second (A / B).
  * Returns the quotient and modulus in rows 1 and 2, respectively.
- * @param big_int_a The dividend BigInt string.
- * @param big_int_b The divisor BigInt string.
+ * @param input_a The dividend BigInt string.
+ * @param input_b The divisor BigInt string.
  * @param [use_floor] Optional boolean. TRUE for Python-style Floor division, FALSE for Truncated. Defaults to FALSE.
  */
-DivMod = LAMBDA(big_int_a, big_int_b, [use_floor],
+DivMod = LAMBDA(input_a, input_b, [use_floor],
     LET(
-        norm_a, Norm(big_int_a),
-        norm_b, Norm(big_int_b),
-        sign_a, BigInt.Sign(norm_a),
-        sign_b, BigInt.Sign(norm_b),
-        is_floor, IF(ISOMITTED(use_floor), FALSE, use_floor),
+        str_norm_a, Norm(input_a),
+        str_norm_b, Norm(input_b),
+        sign_a, BigInt.Sign(str_norm_a),
+        sign_b, BigInt.Sign(str_norm_b),
+        is_floor_div, IF(ISOMITTED(use_floor), FALSE, use_floor),
 
         IF(sign_b = 0, #DIV/0!,
-            IF(sign_a = 0, {"0";"0"},
-                LET(
-                    k, core_BigInt.SafeK("DIV"),
-                    limbs_a, core_BigInt.Split(BigInt.Abs(norm_a), k),
-                    limbs_b, core_BigInt.Split(BigInt.Abs(norm_b), k),
+        IF(sign_a = 0, {"0";"0"},
+            LET(
+                k, core_BigInt.SafeK("DIV"),
+                limbs_a, core_BigInt.Split(BigInt.Abs(str_norm_a), k),
+                limbs_b, core_BigInt.Split(BigInt.Abs(str_norm_b), k),
 
-                    packed_result, core_BigInt.DivRouter(limbs_a, limbs_b, k),
+                packed_result, core_BigInt.DivRouter(limbs_a, limbs_b, k),
 
-                    // Extract Remainder and Quotient arrays
-                    len_r, INDEX(packed_result, 1, 1),
-                    rem_limbs, CHOOSEROWS(packed_result, SEQUENCE(len_r, 1, 2)),
-                    quot_limbs, DROP(packed_result, len_r + 1),
+                len_remainder, INDEX(packed_result, 1, 1),
+                limbs_remainder, CHOOSEROWS(packed_result, SEQUENCE(len_remainder, 1, 2)),
+                limbs_quotient, DROP(packed_result, len_remainder + 1),
 
-                    // Resolve Truncated signs
-                    final_sign, sign_a * sign_b,
-                    merged_q, core_BigInt.Merge(quot_limbs, k),
-                    merged_r, core_BigInt.Merge(rem_limbs, k),
+                final_sign, sign_a * sign_b,
+                str_merged_q, core_BigInt.Merge(limbs_quotient, k),
+                str_merged_r, core_BigInt.Merge(limbs_remainder, k),
 
-                    trunc_q, IF(AND(final_sign = -1, merged_q <> "0") , "-" & merged_q, merged_q),
-                    trunc_r, IF(and(sign_a = -1, merged_r <> "0"), "-" & merged_r, merged_r),
+                str_trunc_q, IF(AND(final_sign = -1, str_merged_q <> "0") , "-" & str_merged_q, str_merged_q),
+                str_trunc_r, IF(and(sign_a = -1, str_merged_r <> "0"), "-" & str_merged_r, str_merged_r),
 
-                    // Floor Correction: Trigger ONLY if floor is requested, signs differ, and remainder is non-zero
-                    needs_correction, AND(is_floor, final_sign = -1, merged_r <> "0"),
+                // Floor Correction if floor is requested, signs differ, and remainder is non-zero
+                needs_floor_correction, AND(is_floor_div, final_sign = -1, str_merged_r <> "0"),
 
-                    final_q, IF(needs_correction, Sub(trunc_q, "1"), trunc_q),
-                    final_r, IF(needs_correction, Add(trunc_r, norm_b), trunc_r),
+                str_final_q, IF(needs_floor_correction, Sub(str_trunc_q, "1"), str_trunc_q),
+                str_final_r, IF(needs_floor_correction, Add(str_trunc_r, str_norm_b), str_trunc_r),
 
-                    VSTACK(final_q, final_r)
-                )
+                VSTACK(str_final_q, str_final_r)
             )
-        )
+        ))
     )
 );
 
 /**
  * Divides the first BigInt by the second (A / B).
- * @param big_int_a The dividend BigInt string.
- * @param big_int_b The divisor BigInt string.
+ * @param input_a The dividend BigInt string.
+ * @param input_b The divisor BigInt string.
  * @param [use_floor] Optional boolean. TRUE for Python-style Floor division. Defaults to FALSE.
  */
-Div = LAMBDA(big_int_a, big_int_b, [use_floor],
-    INDEX(DivMod(big_int_a, big_int_b, use_floor), 1, 1)
+Div = LAMBDA(input_a, input_b, [use_floor],
+    INDEX(DivMod(input_a, input_b, use_floor), 1, 1)
 );
 
 /**
  * Computes the remainder of A / B.
- * @param big_int_a The dividend BigInt string.
- * @param big_int_b The divisor BigInt string.
+ * @param input_a The dividend BigInt string.
+ * @param input_b The divisor BigInt string.
  * @param [use_floor] Optional boolean. TRUE for Python-style Modulo. Defaults to FALSE.
  */
-Mod = LAMBDA(big_int_a, big_int_b, [use_floor],
-    INDEX(DivMod(big_int_a, big_int_b, use_floor), 2, 1)
+Mod = LAMBDA(input_a, input_b, [use_floor],
+    INDEX(DivMod(input_a, input_b, use_floor), 2, 1)
 );
 
 /**
@@ -613,79 +608,79 @@ Mod = LAMBDA(big_int_a, big_int_b, [use_floor],
  */
 Pow = LAMBDA(base, exponent,
     LET(
-        norm_base, Norm(base),
-        norm_exp, Norm(exponent),
-        sign_base, BigInt.Sign(norm_base),
-        sign_exp, BigInt.Sign(norm_exp),
+        str_norm_base, Norm(base),
+        str_norm_exp, Norm(exponent),
+        sign_base, BigInt.Sign(str_norm_base),
+        sign_exp, BigInt.Sign(str_norm_exp),
 
-        abs_base, BigInt.Abs(norm_base),
-        abs_exp, BigInt.Abs(norm_exp),
+        str_abs_base, BigInt.Abs(str_norm_base),
+        str_abs_exp, BigInt.Abs(str_norm_exp),
 
-        is_exp_even, ISEVEN(VALUE(RIGHT(norm_exp, 1))),
+        is_exp_even, ISEVEN(VALUE(RIGHT(str_norm_exp, 1))),
         final_sign, IF(sign_base = -1, IF(is_exp_even, 1, -1), sign_base),
 
         // Handle mathematical boundaries and base limits
-        IF(abs_base = "0", IF(norm_exp = "0", #NUM!, "0"), // 0^0 is undefined
-        IF(abs_base = "1", IF(final_sign = -1, "-1", "1"),
+        IF(str_abs_base = "0", IF(str_norm_exp = "0", #NUM!, "0"), // 0^0 is undefined
+        IF(str_abs_base = "1", IF(final_sign = -1, "-1", "1"),
         IF(sign_exp = -1, "0", // Integer truncation: negative exponents yield 0 for bases >= 2
-        IF(norm_exp = "0", "1",
+        IF(str_norm_exp = "0", "1",
 
         // Results from exponents greater than 6 digits cannot be displayed.
-        IF(LEN(norm_exp) > 6, #NUM!,
+        IF(LEN(str_norm_exp) > 6, #NUM!,
             LET(
-                num_exp, VALUE(norm_exp),
+                num_exp, VALUE(str_norm_exp),
 
                 // Approximate the final character count: B * Log10(A)
-                base_log10, LOG10(VALUE(LEFT(abs_base, 14))) + MAX(0, LEN(abs_base) - 14),
+                base_log10, LOG10(VALUE(LEFT(str_abs_base, 14))) + MAX(0, LEN(str_abs_base) - 14),
                 approx_digits, num_exp * base_log10,
 
                 IF(approx_digits > 32766, #NUM!,
                     LET(
                         k, core_BigInt.SafeK("MUL", approx_digits / 2),
-                        limbs_base, core_BigInt.Split(abs_base, k),
+                        limbs_base, core_BigInt.Split(str_abs_base, k),
 
-                        final_limbs, core_BigInt.UPow(limbs_base, norm_exp, k),
-                        merged, core_BigInt.Merge(final_limbs, k),
+                        limbs_final, core_BigInt.UPow(limbs_base, str_norm_exp, k),
+                        str_merged, core_BigInt.Merge(limbs_final, k),
 
-                        IF(final_sign = -1, "-" & merged, merged)
+                        IF(final_sign = -1, "-" & str_merged, str_merged)
                     )
                 )
             )
         )))))
     )
 );
-
+//123456789012345678901234567890123456789012345678901234567890123456789-1234567-901234567890123456789012345678901234567-
 /**
  * Calculates the integer square root (floor) of a BigInt.
- * @param big_int The radicand BigInt string.
+ * @param input The radicand BigInt string.
  */
-Sqrt = LAMBDA(big_int,
+Sqrt = LAMBDA(input,
     LET(
-        norm_n, Norm(big_int),
-        sign_n, BigInt.Sign(norm_n),
+        str_norm, Norm(input),
+        sign_n, BigInt.Sign(str_norm),
 
         IF(sign_n = -1, #NUM!,
-        IF(norm_n = "0", "0",
-        IF(norm_n = "1", "1",
+        IF(str_norm = "0", "0",
+        IF(str_norm = "1", "1",
             LET(
-                len_n, LEN(norm_n),
-                take_digits, IF(len_n <= 14, len_n, IF(ISEVEN(len_n), 14, 13)),
-                v_str, LEFT(norm_n, take_digits),
-                v_num, VALUE(v_str),
-                zero_count, (len_n - take_digits) / 2,
+                len_norm, LEN(str_norm),
+                num_seed_precision, IF(len_norm <= 14, len_norm, IF(ISEVEN(len_norm), 14, 13)),
+                str_native_precision, LEFT(str_norm, num_seed_precision),
+                num_native_precision, VALUE(str_native_precision),
+                num_magnitude_zeroes, (len_norm - num_seed_precision) / 2,
 
-                seed_prefix, TEXT(ROUNDUP(SQRT(v_num), 0) + 1, "0"),
-                seed_str, seed_prefix & REPT("0", zero_count),
+                str_prefix, TEXT(ROUNDUP(SQRT(num_native_precision), 0) + 1, "0"),
+                str_seed, str_prefix & REPT("0", num_magnitude_zeroes),
 
                 // Scales k by the maximum overlap
-                k, core_BigInt.SafeK("MUL", len_n),
+                k, core_BigInt.SafeK("MUL", len_norm),
 
-                limbs_n, core_BigInt.Split(norm_n, k),
-                limbs_seed, core_BigInt.Split(seed_str, k),
+                limbs_radicand, core_BigInt.Split(str_norm, k),
+                limbs_seed, core_BigInt.Split(str_seed, k),
 
-                final_limbs, core_BigInt.USqrt(limbs_n, limbs_seed, k),
+                limbs_final, core_BigInt.USqrt(limbs_radicand, limbs_seed, k),
 
-                core_BigInt.Merge(final_limbs, k)
+                core_BigInt.Merge(limbs_final, k)
             )
         )))
     )
@@ -693,25 +688,25 @@ Sqrt = LAMBDA(big_int,
 
 /**
  * Computes the factorial of a BigInt (n!) using Peter Luschny's Prime Swing algorithm.
- * @param big_int The BigInt string. Maximum supported input is 9273.
+ * @param input The BigInt string. Maximum supported input is 9273.
  */
-Fact = LAMBDA(big_int,
+Fact = LAMBDA(input,
     LET(
-        norm_n, Norm(big_int),
-        sign_n, BigInt.Sign(norm_n),
+        str_norm, Norm(input),
+        sign_n, BigInt.Sign(str_norm),
 
         IF(sign_n = -1, #NUM!,
-        IF(norm_n = "0", "1",
-        IF(norm_n = "1", "1",
+        IF(str_norm = "0", "1",
+        IF(str_norm = "1", "1",
         // Firewall 1: Trap massive strings before they hit VALUE()
-        IF(LEN(norm_n) > 4, #NUM!,
+        IF(LEN(str_norm) > 4, #NUM!,
         // Firewall 2: Trap mathematical ceiling
-        IF(VALUE(norm_n) > 9273, #NUM!,
+        IF(VALUE(str_norm) > 9273, #NUM!,
             LET(
-                n_val, VALUE(norm_n),
-                global_primes, core_BigInt.NativePrimes(n_val),
+                num_n, VALUE(str_norm),
+                global_primes, core_BigInt.NativePrimes(num_n),
 
-                core_BigInt.PrimeSwingKernel(n_val, global_primes)
+                core_BigInt.PrimeSwingKernel(num_n, global_primes)
             )
         )))))
     )
@@ -723,10 +718,10 @@ Fact = LAMBDA(big_int,
  */
 Min = LAMBDA(range,
     LET(
-        clean_col, TOCOL(range, 1),
+        flattened_col, TOCOL(range, 1),
 
-        IF(OR(ISERROR(clean_col), ROWS(clean_col) = 0), "0",
-            core_BigInt.TreeCompare(MAP(clean_col, BigInt.Norm), -1)
+        IF(OR(ISERROR(flattened_col), ROWS(flattened_col) = 0), "0",
+            core_BigInt.TreeCompare(MAP(flattened_col, BigInt.Norm), -1)
         )
     )
 );
@@ -737,10 +732,10 @@ Min = LAMBDA(range,
  */
 Max = LAMBDA(range,
     LET(
-        clean_col, TOCOL(range, 1),
+        flattened_col, TOCOL(range, 1),
 
-        IF(OR(ISERROR(clean_col), ROWS(clean_col) = 0), "0",
-            core_BigInt.TreeCompare(MAP(clean_col, BigInt.Norm), 1)
+        IF(OR(ISERROR(flattened_col), ROWS(flattened_col) = 0), "0",
+            core_BigInt.TreeCompare(MAP(flattened_col, BigInt.Norm), 1)
         )
     )
 );
@@ -758,18 +753,17 @@ Max = LAMBDA(range,
  * @param operation: "ADD", "MUL", or "DIV".
  * @param [max_items] ADD: number of operands. MUL: shortest string digits count.
  */
-SafeK = LAMBDA(operation, [max_items],
+SafeK = LAMBDA(operation, [operand_or_digits],
     LET(
-        items, IF(OR(max_items = "", ISOMITTED(max_items)), 2, MAX(2, max_items)),
+        resolved_count, IF(OR(operand_or_digits = "", ISOMITTED(operand_or_digits)), 2, MAX(2, operand_or_digits)),
 
         SWITCH(operation,
-            "ADD", 15 - LEN(items),
+            "ADD", 15 - LEN(resolved_count),
 
             "MUL", LET(
-                // Evaluate possible k values dynamically
                 test_k, {7; 6; 5; 4; 3; 2; 1},
 
-                max_overlap, ROUNDUP(items / test_k, 0),
+                max_overlap, ROUNDUP(resolved_count / test_k, 0),
 
                 // Calculate the absolute peak value inside the engine (Convolution + Carry)
                 uncarried_max, max_overlap * (10^test_k - 1)^2,
@@ -792,17 +786,17 @@ SafeK = LAMBDA(operation, [max_items],
  * @param big_ints The string or array of strings.
  * @param k The dynamic chunk size context.
  */
-Split = LAMBDA(big_ints, k,
+Split = LAMBDA(str_norms, k,
     LET(
-        big_int_row, TOROW(big_ints),
-        lengths, LEN(big_int_row),
+        flattened_norms, TOROW(str_norms),
+        lengths, LEN(flattened_norms),
         max_len, MAX(lengths),
         pad_len, ROUNDUP(max_len / k, 0) * k,
 
-        padded, REPT("0", pad_len - lengths) & big_int_row,
-        starts, SEQUENCE(pad_len / k, 1, pad_len - k + 1, -k),
+        padded_norms, REPT("0", pad_len - lengths) & flattened_norms,
+        limb_start_indices, SEQUENCE(pad_len / k, 1, pad_len - k + 1, -k),
 
-        --MID(padded, starts, k)
+        --MID(padded_norms, limb_start_indices, k)
     )
 );
 
@@ -835,11 +829,11 @@ Merge = LAMBDA(limbs, k,
  */
 Carry = LAMBDA(limbs, k,
     LET(
-        n, ROWS(limbs),
-        base, 10^k,
-        scanned, SCAN(0, limbs, LAMBDA(acc, val, val + INT(acc / base))),
-        remainders, MOD(scanned, base),
-        final_carry, INT(INDEX(scanned, n, 1) / base),
+        num_limbs, ROWS(limbs),
+        radix_base, 10^k,
+        arr_carries, SCAN(0, limbs, LAMBDA(acc, val, val + INT(acc / radix_base))),
+        remainders, MOD(arr_carries, radix_base),
+        final_carry, INT(INDEX(arr_carries, num_limbs, 1) / radix_base),
 
         IF(final_carry > 0, VSTACK(remainders, final_carry), remainders)
     )
@@ -856,13 +850,13 @@ Carry = LAMBDA(limbs, k,
 UCompare = LAMBDA(limbs_a, limbs_b,
     LET(
         max_rows, MAX(ROWS(limbs_a), ROWS(limbs_b)),
-        pad_a, EXPAND(limbs_a, max_rows, 1, 0),
-        pad_b, EXPAND(limbs_b, max_rows, 1, 0),
+        limbs_a_aligned, EXPAND(limbs_a, max_rows, 1, 0),
+        limbs_b_aligned, EXPAND(limbs_b, max_rows, 1, 0),
 
-        diff, pad_a - pad_b,
-        msd_idx, XMATCH(TRUE, diff <> 0, 0, -1),
+        differences, limbs_a_aligned - limbs_b_aligned,
+        highest_non_zero_index, XMATCH(TRUE, differences <> 0, 0, -1),
 
-        IF(ISNA(msd_idx), 0, SIGN(INDEX(diff, msd_idx, 1)))
+        IF(ISNA(highest_non_zero_index), 0, SIGN(INDEX(differences, highest_non_zero_index, 1)))
     )
 );
 
@@ -875,10 +869,10 @@ UCompare = LAMBDA(limbs_a, limbs_b,
 UAdd = LAMBDA(a, b, k,
     LET(
         max_rows, MAX(ROWS(a), ROWS(b)),
-        pad_a, EXPAND(a, max_rows, 1, 0),
-        pad_b, EXPAND(b, max_rows, 1, 0),
+        limbs_a_aligned, EXPAND(a, max_rows, 1, 0),
+        limbs_b_aligned, EXPAND(b, max_rows, 1, 0),
 
-        Carry(pad_a + pad_b, k)
+        Carry(limbs_a_aligned + limbs_b_aligned, k)
     )
 );
 
@@ -892,26 +886,26 @@ UAdd = LAMBDA(a, b, k,
 USub = LAMBDA(limbs_a, limbs_b, k,
     LET(
         max_rows, MAX(ROWS(limbs_a), ROWS(limbs_b)),
-        pad_a, EXPAND(limbs_a, max_rows, 1, 0),
-        pad_b, EXPAND(limbs_b, max_rows, 1, 0),
+        limbs_a_aligned, EXPAND(limbs_a, max_rows, 1, 0),
+        limbs_b_aligned, EXPAND(limbs_b, max_rows, 1, 0),
 
-        diff, pad_a - pad_b,
-        resolved, Carry(diff, k),
+        differences, limbs_a_aligned - limbs_b_aligned,
+        carried_differences, Carry(differences, k),
 
-        msd_idx, XMATCH(TRUE, resolved <> 0, 0, -1),
+        highest_non_zero_index, XMATCH(TRUE, carried_differences <> 0, 0, -1),
 
-        IF(ISNA(msd_idx), {0}, TAKE(resolved, msd_idx))
+        IF(ISNA(highest_non_zero_index), {0}, TAKE(carried_differences, highest_non_zero_index))
     )
 );
 
 /**
  * [Internal] Vectorized matrix sum of unsigned BigInt strings.
- * @param ubig_int Horizontal array (1xN) of normalized magnitude strings.
+ * @param str_norms Horizontal array (1xN) of normalized magnitude strings.
  * @param k The unified dynamic chunk size context.
  */
-UMatrixSum = LAMBDA(ubig_ints, k,
+UMatrixSum = LAMBDA(str_norms, k,
     LET(
-        grid, Split(ubig_ints, k),
+        grid, Split(str_norms, k),
         raw_limbs, BYROW(grid, SUM),
 
         Carry(raw_limbs, k)
@@ -929,21 +923,18 @@ UMatrixSum = LAMBDA(ubig_ints, k,
  */
 AddSubRouter = LAMBDA(limbs_a, limbs_b, sign_a, sign_b, k,
     LET(
-        is_same_sign, sign_a = sign_b,
+        is_addition, sign_a = sign_b,
 
-        IF(is_same_sign,
-            // Addition: magnitudes combine, sign remains the same.
+        IF(is_addition,
             VSTACK(UAdd(limbs_a, limbs_b, k), sign_a),
 
-            // Subtraction: evaluate magnitudes to satisfy USub (A >= B) precondition.
             LET(
-                mag_comp, UCompare(limbs_a, limbs_b),
+                magnitude_comparison, UCompare(limbs_a, limbs_b),
 
-                IF(mag_comp = 0,
-                    // Total cancellation: return {0} limb and 0 sign.
+                IF(magnitude_comparison = 0, // Total cancellation:
                     {0;0},
 
-                    IF(mag_comp > 0,
+                    IF(magnitude_comparison > 0,
                         // A is larger: sign belongs to A.
                         VSTACK(USub(limbs_a, limbs_b, k), sign_a),
 
@@ -966,59 +957,51 @@ AddSubRouter = LAMBDA(limbs_a, limbs_b, sign_a, sign_b, k,
  */
 UMul = LAMBDA(limbs_a, limbs_b, k,
     LET(
-        len_a, ROWS(limbs_a),
-        len_b, ROWS(limbs_b),
-        max_rows, len_a + len_b - 1,
+        num_limbs_a, ROWS(limbs_a),
+        num_limbs_b, ROWS(limbs_b),
+        convolution_length, num_limbs_a + num_limbs_b - 1,
 
-        // Loop purely over the length of the final output array
-        raw_limbs, MAKEARRAY(max_rows, 1, LAMBDA(r, c,
+        raw_convolution, MAKEARRAY(convolution_length, 1, LAMBDA(r, c,
             LET(
-                // Calculate the valid overlapping window of indices for this magnitude
-                start_i, MAX(1, r - len_b + 1),
-                end_i, MIN(r, len_a),
+                window_start_i, MAX(1, r - num_limbs_b + 1),
+                window_end_i, MIN(r, num_limbs_a),
 
-                count, end_i - start_i + 1,
+                overlap_rows, window_end_i - window_start_i + 1,
 
-                // Sequence i counts UP. Sequence j counts DOWN.
-                seq_i, SEQUENCE(count, 1, start_i, 1),
-                seq_j, SEQUENCE(count, 1, r - start_i + 1, -1),
+                seq_i, SEQUENCE(overlap_rows, 1, window_start_i, 1),
+                seq_j, SEQUENCE(overlap_rows, 1, r - window_start_i + 1, -1),
 
-                // Slice the exact intersecting limbs, multiply, and sum natively
                 SUM(INDEX(limbs_a, seq_i, 1) * INDEX(limbs_b, seq_j, 1))
             )
         )),
 
-        // Resolve all carries bottom-to-top exactly once
-        Carry(raw_limbs, k)
+        Carry(raw_convolution, k)
     )
 );
 
 /**
  * [Internal] Binary search to find the highest scalar quotient limb q (0 <= q < 10^k)
- * such that B * q <= acc. Eliminates the need for Knuth D float-estimation.
- * @param acc The current remainder array.
+ * such that B * q <= limbs_r. Eliminates the need for Knuth D float-estimation.
+ * @param limbs_r The current remainder array.
  * @param b The divisor array.
  * @param k The dynamic chunk size context.
  */
-FindQuotientLimb = LAMBDA(acc, b, k,
+FindQuotientLimb = LAMBDA(limbs_r, limbs_b, k,
     LET(
-        // Calculate required bits dynamically. For max k=7, this evaluates to 24 bits.
-        bits, CEILING.MATH(LOG(10^k, 2)),
-        powers, 2 ^ SEQUENCE(bits, 1, bits - 1, -1),
+        required_bits, CEILING.MATH(LOG(10^k, 2)),
+        powers_of_two, 2 ^ SEQUENCE(required_bits, 1, required_bits - 1, -1),
 
-        REDUCE(0, powers, LAMBDA(curr_q, power,
+        REDUCE(0, powers_of_two, LAMBDA(current_q, current_power,
             LET(
-                test_q, curr_q + power,
+                test_q, current_q + current_power,
 
-                // Skip if test_q exceeds the limb base
                 IF(test_q >= 10^k,
-                    curr_q,
+                    current_q,
                     LET(
-                        // Multiply B by scalar test_q and resolve carries natively
-                        test_prod, Carry(b * test_q, k),
-                        comp, UCompare(acc, test_prod),
+                        limbs_bq, Carry(limbs_b * test_q, k),
+                        magnitude_comparison, UCompare(limbs_r, limbs_bq),
 
-                        IF(comp >= 0, test_q, curr_q)
+                        IF(magnitude_comparison >= 0, test_q, current_q)
                     )
                 )
             )
@@ -1036,57 +1019,46 @@ FindQuotientLimb = LAMBDA(acc, b, k,
  */
 KnuthDiv = LAMBDA(limbs_a, limbs_b, k,
     LET(
-        mag_comp, UCompare(limbs_a, limbs_b),
+        magnitude_comparison, UCompare(limbs_a, limbs_b),
 
-        // Short-circuit routing with the new packed memory contract
-        IF(mag_comp < 0,
-            VSTACK(ROWS(limbs_a), limbs_a, 0),
-            IF(mag_comp = 0,
-                VSTACK(1, 0, 1),
-                LET(
-                    len_a, ROWS(limbs_a),
-                    // Iterate over A from MSB (top) to LSB (bottom)
-                    reversed_a, CHOOSEROWS(limbs_a, SEQUENCE(len_a, 1, len_a, -1)),
+        IF(magnitude_comparison < 0, VSTACK(ROWS(limbs_a), limbs_a, 0),
+        IF(magnitude_comparison = 0, VSTACK(1, 0, 1),
+            LET(
+                num_limbs_a, ROWS(limbs_a),
+                big_endian_a, CHOOSEROWS(limbs_a, SEQUENCE(num_limbs_a, 1, num_limbs_a, -1)),
 
-                    // State separator: VSTACK(len_remainder, remainder, quotient)
-                    initial_state, VSTACK(1, 0, 0),
+                final_packed_state, REDUCE(VSTACK(1, 0, 0), big_endian_a, LAMBDA(packed_state, val,
+                    LET(
+                        num_limbs_r, INDEX(packed_state, 1, 1),
+                        limbs_r, CHOOSEROWS(packed_state, SEQUENCE(num_limbs_r, 1, 2)),
+                        limbs_q, DROP(packed_state, num_limbs_r + 1),
 
-                    final_state, REDUCE(initial_state, reversed_a, LAMBDA(state, val,
-                        LET(
-                            len_remainder, INDEX(state, 1, 1),
-                            remainder, CHOOSEROWS(state, SEQUENCE(len_remainder, 1, 2)),
-                            quotient, DROP(state, len_remainder + 1),
+                        limbs_shifted_r, IF(AND(ROWS(limbs_r) = 1, INDEX(limbs_r, 1, 1) = 0),
+                            val,
+                            VSTACK(val, limbs_r)
+                        ),
 
-                            // Shift acc up by 1 limb (Little-Endian: insert at index 1)
-                            extended_remainder, IF(AND(ROWS(remainder) = 1, INDEX(remainder, 1, 1) = 0),
-                                val,
-                                VSTACK(val, remainder)
-                            ),
+                        q_limb, FindQuotientLimb(limbs_shifted_r, limbs_b, k),
+                        limbs_bq, Carry(limbs_b * q_limb, k),
+                        limbs_next_r, USub(limbs_shifted_r, limbs_bq, k),
+                        has_q, OR(ROWS(limbs_q) > 1, INDEX(limbs_q,1,1) > 0),
 
-                            next_quotient_limb, FindQuotientLimb(extended_remainder, limbs_b, k),
-                            prod, Carry(limbs_b * next_quotient_limb, k),
-                            new_remainder, USub(extended_remainder, prod, k),
-                            has_quotient, OR(ROWS(quotient) > 1, INDEX(quotient,1,1) > 0),
+                        limbs_next_q, IF(has_q, VSTACK(limbs_q, q_limb), q_limb),
 
-                            next_quot, IF(has_quotient, VSTACK(quotient, next_quotient_limb), next_quotient_limb),
+                        VSTACK(ROWS(limbs_next_r), limbs_next_r, limbs_next_q)
+                    )
+                )),
 
-                            VSTACK(ROWS(new_remainder), new_remainder, next_quot)
-                        )
-                    )),
+                num_limbs_r, INDEX(final_packed_state, 1, 1),
+                limbs_r, CHOOSEROWS(final_packed_state, SEQUENCE(num_limbs_r, 1, 2)),
+                big_endian_q, DROP(final_packed_state, num_limbs_r + 1),
 
-                    len_remainder, INDEX(final_state, 1, 1),
-                    remainder, CHOOSEROWS(final_state, SEQUENCE(len_remainder, 1, 2)),
-                    reversed_quotient, DROP(final_state, len_remainder + 1),
+                len_q, ROWS(big_endian_q),
+                limbs_q, CHOOSEROWS(big_endian_q, SEQUENCE(len_q, 1, len_q, -1)),
 
-                    // quot_raw was built MSB to LSB (Big-Endian). Reverse to internal Little-Endian.
-                    len_quotient, ROWS(reversed_quotient),
-                    quotient, CHOOSEROWS(reversed_quotient, SEQUENCE(len_quotient, 1, len_quotient, -1)),
-
-                    // Return strictly packed 1D array
-                    VSTACK(len_remainder, remainder, quotient)
-                )
+                VSTACK(num_limbs_r, limbs_r, limbs_q)
             )
-        )
+        ))
     )
 );
 
@@ -1099,16 +1071,15 @@ KnuthDiv = LAMBDA(limbs_a, limbs_b, k,
  */
 DivRouter = LAMBDA(limbs_a, limbs_b, k,
     LET(
-        // Digit counts are approximate, but sufficient
-        digits_a, ROWS(limbs_a) * k,
-        digits_b, ROWS(limbs_b) * k,
+        approx_digits_a, ROWS(limbs_a) * k,
+        approx_digits_b, ROWS(limbs_b) * k,
 
-        // Machine-learned coefficients from Logistic Regression
-        m, 0.107821194271297,
-        c, -221.902189462068,
-        threshold, (m * digits_a) + c,
+        // Logistic Regression coefficients
+        regression_slope_m, 0.107821194271297,
+        regression_intercept_c, -221.902189462068,
+        threshold_digits, (regression_slope_m * approx_digits_a) + regression_intercept_c,
 
-        IF(digits_b <= threshold,
+        IF(approx_digits_b <= threshold_digits,
             KnuthDiv(limbs_a, limbs_b, k),
             NewtonRaphsonDiv(limbs_a, limbs_b, k)
         )
@@ -1123,22 +1094,22 @@ DivRouter = LAMBDA(limbs_a, limbs_b, k,
  */
 NewtonRaphsonSeed = LAMBDA(limbs_b, k,
     LET(
-        len_b, ROWS(limbs_b),
-        seed_len, MIN(3, len_b),
+        num_limbs_b, ROWS(limbs_b),
+        num_seed_limbs, MIN(3, num_limbs_b),
 
         // Extract top 'seed_len' limbs (Little-Endian: take from the bottom)
-        b_top, TAKE(limbs_b, -seed_len),
+        limbs_b_top, TAKE(limbs_b, -num_seed_limbs),
 
         // Construct Beta^(2 * seed_len) natively
         // e.g., if seed_len = 1, then 1 followed by two zero limbs: VSTACK(0, 0, 1)
-        beta_2m, VSTACK(EXPAND(0, 2 * seed_len, , 0), 1),
+        limbs_beta_2m, VSTACK(EXPAND(0, 2 * num_seed_limbs, , 0), 1),
 
         // Knuth Division yields exact initial reciprocal
-        packed, KnuthDiv(beta_2m, b_top, k),
+        packed_basecase_result, KnuthDiv(limbs_beta_2m, limbs_b_top, k),
 
         // Extract Quotient array from the packed VSTACK
-        len_r, INDEX(packed, 1, 1),
-        DROP(packed, len_r + 1)
+        num_limbs_r, INDEX(packed_basecase_result, 1, 1),
+        DROP(packed_basecase_result, num_limbs_r + 1)
     )
 );
 
@@ -1150,47 +1121,51 @@ NewtonRaphsonSeed = LAMBDA(limbs_b, k,
  */
 NewtonRaphsonReciprocal = LAMBDA(limbs_b, target_len, k,
     LET(
-        len_b, ROWS(limbs_b),
-        seed_len, MIN(3, len_b),
-        r_seed_limbs, core_BigInt.NewtonRaphsonSeed(limbs_b, k),
+        num_limbs_b, ROWS(limbs_b),
+        num_seed_limbs, MIN(3, num_limbs_b),
+        limbs_r_seed, core_BigInt.NewtonRaphsonSeed(limbs_b, k),
 
-        initial_state, VSTACK(seed_len, r_seed_limbs),
-        req_iters, MAX(0, CEILING.MATH(LN(target_len / seed_len) / LN(2))) + 1,
+        required_iterations, MAX(0, CEILING.MATH(LN(target_len / num_seed_limbs) / LN(2))) + 1,
 
-        IF(req_iters = 0,
-            r_seed_limbs,
+        IF(required_iterations = 0, limbs_r_seed,
             LET(
-                iterations, SEQUENCE(req_iters),
-                final_state, REDUCE(initial_state, iterations, LAMBDA(state, iter,
+                iterations, SEQUENCE(required_iterations),
+                final_packed_state, REDUCE(VSTACK(num_seed_limbs, limbs_r_seed), iterations, LAMBDA(packed_state, i,
                     LET(
-                        curr_len, INDEX(state, 1, 1),
-                        curr_r, DROP(state, 1),
+                        current_len, INDEX(packed_state, 1, 1),
+                        limbs_current_r, DROP(packed_state, 1),
 
-                        next_len, MIN(curr_len * 2, target_len),
+                        next_len, MIN(current_len * 2, target_len),
 
                         // Dynamic Scaling Shift:
                         // If B has plateaued, R must scale by 2*(n-m). If B is growing, R scales by (n-m).
-                        active_curr, MIN(curr_len, len_b),
-                        active_next, MIN(next_len, len_b),
-                        shift_limbs, 2 * (next_len - curr_len) - (active_next - active_curr),
+                        active_b_limbs_current, MIN(current_len, num_limbs_b),
+                        active_b_limbs_next, MIN(next_len, num_limbs_b),
+                        required_shift_limbs, 2 * (next_len - current_len) - (active_b_limbs_next - active_b_limbs_current),
 
-                        r_prime, IF(shift_limbs > 0, VSTACK(EXPAND(0, shift_limbs, , 0), curr_r), curr_r),
+                        limbs_r_prime, IF(required_shift_limbs > 0,
+                            VSTACK(EXPAND(0, required_shift_limbs, , 0), limbs_current_r),
+                            limbs_current_r
+                        ),
 
-                        b_active, TAKE(limbs_b, -active_next),
+                        limbs_b_active, TAKE(limbs_b, -active_b_limbs_next),
 
                         // P is natively aligned to 2*next_len because of the corrected shift_limbs
-                        p, core_BigInt.UMul(b_active, r_prime, k),
+                        limbs_p, core_BigInt.UMul(limbs_b_active, limbs_r_prime, k),
 
-                        two_beta, VSTACK(EXPAND(0, 2 * next_len, , 0), 2),
-                        err, core_BigInt.USub(two_beta, p, k),
+                        limbs_two_beta, VSTACK(EXPAND(0, 2 * next_len, , 0), 2),
+                        limbs_error_term, core_BigInt.USub(limbs_two_beta, limbs_p, k),
 
-                        next_r_unscaled, core_BigInt.UMul(r_prime, err, k),
-                        next_r, IF(ROWS(next_r_unscaled) <= 2 * next_len, {0}, DROP(next_r_unscaled, 2 * next_len)),
+                        limbs_next_r_unscaled, core_BigInt.UMul(limbs_r_prime, limbs_error_term, k),
+                        limbs_next_r, IF(ROWS(limbs_next_r_unscaled) <= 2 * next_len,
+                            {0},
+                            DROP(limbs_next_r_unscaled, 2 * next_len)
+                        ),
 
-                        VSTACK(next_len, next_r)
+                        VSTACK(next_len, limbs_next_r)
                     )
                 )),
-                DROP(final_state, 1)
+                DROP(final_packed_state, 1)
             )
         )
     )
@@ -1205,74 +1180,72 @@ NewtonRaphsonReciprocal = LAMBDA(limbs_b, target_len, k,
  */
 NewtonRaphsonDiv = LAMBDA(limbs_a, limbs_b, k,
     LET(
-        len_a, ROWS(limbs_a),
-        len_b, ROWS(limbs_b),
-        target_len, MAX(len_a, len_b),
+        num_limbs_a, ROWS(limbs_a),
+        num_limbs_b, ROWS(limbs_b),
+        num_limbs_target, MAX(num_limbs_a, num_limbs_b),
 
         // 1. Calculate reciprocal R scaled dynamically to 2 * target_len
-        r, core_BigInt.NewtonRaphsonReciprocal(limbs_b, target_len, k),
+        limbs_reciprocal, core_BigInt.NewtonRaphsonReciprocal(limbs_b, num_limbs_target, k),
 
         // 2. Approximate Quotient: Q_approx = A * R / Beta^(2 * target_len)
-        drop_limbs, 2 * target_len,
-        q_unscaled, core_BigInt.UMul(limbs_a, r, k),
-        q_approx, IF(ROWS(q_unscaled) <= drop_limbs, {0}, DROP(q_unscaled, drop_limbs)),
+        right_shift_limbs, 2 * num_limbs_target,
+        limbs_q_unscaled, core_BigInt.UMul(limbs_a, limbs_reciprocal, k),
+        limbs_q_approx, IF(ROWS(limbs_q_unscaled) <= right_shift_limbs, {0}, DROP(limbs_q_unscaled, right_shift_limbs)),
 
         // Calculate the massive baseline product exactly ONCE
-        p_baseline, core_BigInt.UMul(limbs_b, q_approx, k),
+        limbs_p_baseline, core_BigInt.UMul(limbs_b, limbs_q_approx, k),
 
         // 3. Bounded Error Correction Sweep (Optimized O(N) Stepping)
         // State packing: VSTACK(Length_Q, Q_limbs, P_limbs)
-        initial_state, VSTACK(ROWS(q_approx), q_approx, p_baseline),
+        initial_packed_state, VSTACK(ROWS(limbs_q_approx), limbs_q_approx, limbs_p_baseline),
 
         // Sweep Down: If P > A, Q is too big. Step Q down by 1, and P down by B.
-        sweep_down, REDUCE(initial_state, {1; 2}, LAMBDA(state, i,
+        packed_state_swept_down, REDUCE(initial_packed_state, {1; 2}, LAMBDA(packed_state, i,
             LET(
-                len_q, INDEX(state, 1, 1),
-                curr_q, CHOOSEROWS(state, SEQUENCE(len_q, 1, 2)),
-                curr_p, DROP(state, len_q + 1),
+                len_q, INDEX(packed_state, 1, 1),
+                limbs_current_q, CHOOSEROWS(packed_state, SEQUENCE(len_q, 1, 2)),
+                limbs_current_p, DROP(packed_state, len_q + 1),
 
-                IF(core_BigInt.UCompare(curr_p, limbs_a) > 0,
+                IF(core_BigInt.UCompare(limbs_current_p, limbs_a) <= 0, packed_state,
                     LET(
-                        next_q, core_BigInt.USub(curr_q, {1}, k),
-                        next_p, core_BigInt.USub(curr_p, limbs_b, k),
-                        VSTACK(ROWS(next_q), next_q, next_p)
-                    ),
-                    state
+                        limbs_next_q, core_BigInt.USub(limbs_current_q, {1}, k),
+                        limbs_next_p, core_BigInt.USub(limbs_current_p, limbs_b, k),
+                        VSTACK(ROWS(limbs_next_q), limbs_next_q, limbs_next_p)
+                    )
                 )
             )
         )),
 
         // Sweep Up: If P + B <= A, Q is too small. Step Q up by 1, and P up by B.
-        sweep_up, REDUCE(sweep_down, {1; 2}, LAMBDA(state, i,
+        packed_state_swept_up, REDUCE(packed_state_swept_down, {1; 2}, LAMBDA(packed_state, i,
             LET(
-                len_q, INDEX(state, 1, 1),
-                curr_q, CHOOSEROWS(state, SEQUENCE(len_q, 1, 2)),
-                curr_p, DROP(state, len_q + 1),
+                len_q, INDEX(packed_state, 1, 1),
+                limbs_current_q, CHOOSEROWS(packed_state, SEQUENCE(len_q, 1, 2)),
+                limbs_current_p, DROP(packed_state, len_q + 1),
 
-                next_p_test, core_BigInt.UAdd(curr_p, limbs_b, k),
+                limbs_next_p_test, core_BigInt.UAdd(limbs_current_p, limbs_b, k),
 
-                IF(core_BigInt.UCompare(next_p_test, limbs_a) <= 0,
+                IF(core_BigInt.UCompare(limbs_next_p_test, limbs_a) > 0, packed_state,
                     LET(
-                        next_q, core_BigInt.UAdd(curr_q, {1}, k),
-                        VSTACK(ROWS(next_q), next_q, next_p_test)
-                    ),
-                    state
+                        limbs_next_q, core_BigInt.UAdd(limbs_current_q, {1}, k),
+                        VSTACK(ROWS(limbs_next_q), limbs_next_q, limbs_next_p_test)
+                    )
                 )
             )
         )),
 
         // Extract Final Q and P
-        final_len_q, INDEX(sweep_up, 1, 1),
-        final_q, CHOOSEROWS(sweep_up, SEQUENCE(final_len_q, 1, 2)),
-        final_p, DROP(sweep_up, final_len_q + 1),
+        len_q, INDEX(packed_state_swept_up, 1, 1),
+        limbs_q, CHOOSEROWS(packed_state_swept_up, SEQUENCE(len_q, 1, 2)),
+        limbs_p, DROP(packed_state_swept_up, len_q + 1),
 
         // 4. Extract True Remainder Safely (A - Final_P)
-        final_r, core_BigInt.USub(limbs_a, final_p, k),
+        limbs_r, core_BigInt.USub(limbs_a, limbs_p, k),
 
         VSTACK(
-            ROWS(final_r),
-            final_r,
-            final_q
+            ROWS(limbs_r),
+            limbs_r,
+            limbs_q
         )
     )
 );
@@ -1284,41 +1257,41 @@ NewtonRaphsonDiv = LAMBDA(limbs_a, limbs_b, k,
  * @param exp_string The exact text string of the exponent.
  * @param k The dynamic chunk size context.
  */
-UPow = LAMBDA(limbs_base, exp_string, k,
+UPow = LAMBDA(limbs_base, exponent_string, k,
     LET(
         // Pre-compute powers 1 through 9.
-        first, limbs_base,
-        second, core_BigInt.UMul(first, first, k),
-        third, core_BigInt.UMul(second, first, k),
-        fourth, core_BigInt.UMul(second, second, k),
-        fifth, core_BigInt.UMul(fourth, first, k),
-        sixth, core_BigInt.UMul(third, third, k),
-        seventh, core_BigInt.UMul(sixth, first, k),
-        eigth, core_BigInt.UMul(fourth, fourth, k),
-        ninth, core_BigInt.UMul(eigth, first, k),
+        limbs_base1, limbs_base,
+        limbs_base2, core_BigInt.UMul(limbs_base1, limbs_base1, k),
+        limbs_base3, core_BigInt.UMul(limbs_base2, limbs_base1, k),
+        limbs_base4, core_BigInt.UMul(limbs_base2, limbs_base2, k),
+        limbs_base5, core_BigInt.UMul(limbs_base4, limbs_base1, k),
+        limbs_base6, core_BigInt.UMul(limbs_base3, limbs_base3, k),
+        limbs_base7, core_BigInt.UMul(limbs_base6, limbs_base1, k),
+        limbs_base8, core_BigInt.UMul(limbs_base4, limbs_base4, k),
+        limbs_base9, core_BigInt.UMul(limbs_base8, limbs_base1, k),
 
-        exp_digits, --MID(exp_string, SEQUENCE(LEN(exp_string)), 1),
+        exponent_digits, --MID(exponent_string, SEQUENCE(LEN(exponent_string)), 1),
 
-        REDUCE(1, exp_digits, LAMBDA(acc, digit,
+        REDUCE(1, exponent_digits, LAMBDA(limbs_accumulator, current_digit,
             LET(
                 // Short-circuit: Skip calculating 1^10 during leading iterations
-                is_one, AND(ROWS(acc) = 1, INDEX(acc, 1, 1) = 1),
+                is_one, AND(ROWS(limbs_accumulator) = 1, INDEX(limbs_accumulator, 1, 1) = 1),
 
-                // 1. Raise Acc to the 10th power using exactly 4 multiplications
-                acc_10, IF(is_one, acc,
+                // 1. Raise Acc to the 10th power
+                limbs_acc_10, IF(is_one, limbs_accumulator,
                     LET(
-                        acc_2, core_BigInt.UMul(acc, acc, k),
-                        acc_4, core_BigInt.UMul(acc_2, acc_2, k),
-                        acc_8, core_BigInt.UMul(acc_4, acc_4, k),
-                        core_BigInt.UMul(acc_8, acc_2, k)
+                        limbs_acc_2, core_BigInt.UMul(limbs_accumulator, limbs_accumulator, k),
+                        limbs_acc_4, core_BigInt.UMul(limbs_acc_2, limbs_acc_2, k),
+                        limbs_acc_8, core_BigInt.UMul(limbs_acc_4, limbs_acc_4, k),
+                        core_BigInt.UMul(limbs_acc_8, limbs_acc_2, k)
                     )
                 ),
 
-                // 2. Multiply by the corresponding pre-computed cache value
-                IF(digit = 0, acc_10,
+                // 2. Multiply by the corresponding cached value
+                IF(current_digit = 0, limbs_acc_10,
                     LET(
-                        cache_val, CHOOSE(digit, first, second, third, fourth, fifth, sixth, seventh, eigth, ninth),
-                        IF(is_one, cache_val, core_BigInt.UMul(acc_10, cache_val, k))
+                        limbs_cache_multiplier, CHOOSE(current_digit, limbs_base1, limbs_base2, limbs_base3, limbs_base4, limbs_base5, limbs_base6, limbs_base7, limbs_base8, limbs_base9),
+                        IF(is_one, limbs_cache_multiplier, core_BigInt.UMul(limbs_acc_10, limbs_cache_multiplier, k))
                     )
                 )
             )
@@ -1328,53 +1301,50 @@ UPow = LAMBDA(limbs_base, exp_string, k,
 
 /**
  * [Internal] Unsigned Integer Square Root using Newton's Method.
- * @param limbs_n Radicand little-endian array.
- * @param limbs_seed Over-estimated little-endian seed array.
+ * @param limbs_radicand.
+ * @param limbs_initial_x Over-estimated seed array.
  * @param k The dynamic chunk size context.
  */
-USqrt = LAMBDA(limbs_n, limbs_seed, k,
+USqrt = LAMBDA(limbs_radicand, limbs_initial_x, k,
     LET(
-        // State is packed: VSTACK(is_done_flag, current_x)
-        initial_state, VSTACK(0, limbs_seed),
-        max_iters, 35,
+        maximum_iterations, 35,
 
-        final_state, REDUCE(initial_state, SEQUENCE(max_iters), LAMBDA(state, i,
+        final_packed_state, REDUCE(VSTACK(0, limbs_initial_x), SEQUENCE(maximum_iterations), LAMBDA(packed_state, i,
             LET(
-                is_done, INDEX(state, 1, 1),
-                curr_x, DROP(state, 1),
+                has_converged, INDEX(packed_state, 1, 1),
+                limbs_current_x, DROP(packed_state, 1),
 
-                IF(is_done,
-                    state,
+                IF(has_converged, packed_state,
                     LET(
                         // 1. Division: n / x
-                        div_packed, core_BigInt.DivRouter(limbs_n, curr_x, k),
-                        len_r, INDEX(div_packed, 1, 1),
-                        q, DROP(div_packed, len_r + 1),
+                        packed_division_result, core_BigInt.DivRouter(limbs_radicand, limbs_current_x, k),
+                        num_limbs_r, INDEX(packed_division_result, 1, 1),
+                        limbs_q, DROP(packed_division_result, num_limbs_r + 1),
 
                         // 2. Addition: x + (n / x)
-                        sum_xq, core_BigInt.UAdd(curr_x, q, k),
+                        limbs_sum_xq, core_BigInt.UAdd(limbs_current_x, limbs_q, k),
 
                         // 3. Halving: (x + (n / x)) / 2
                         // KnuthDiv inherently supports scalar divisors with zero overhead
-                        div_2_packed, core_BigInt.KnuthDiv(sum_xq, {2}, k),
-                        len_r2, INDEX(div_2_packed, 1, 1),
-                        x_next, DROP(div_2_packed, len_r2 + 1),
+                        packed_half_result, core_BigInt.KnuthDiv(limbs_sum_xq, {2}, k),
+                        num_limbs_halfed, INDEX(packed_half_result, 1, 1),
+                        limbs_next_x, DROP(packed_half_result, num_limbs_halfed + 1),
 
                         // 4. Convergence Check
-                        comp, core_BigInt.UCompare(x_next, curr_x),
+                        convergence_comparison, core_BigInt.UCompare(limbs_next_x, limbs_current_x),
 
                         // Newton's method converges on the floor root, and stabilizes or oscillates up by 1.
                         // Therefore, if x_next >= curr_x, the algorithm has converged.
-                        IF(comp >= 0,
-                            VSTACK(1, curr_x),
-                            VSTACK(0, x_next)
+                        IF(convergence_comparison >= 0,
+                            VSTACK(1, limbs_current_x),
+                            VSTACK(0, limbs_next_x)
                         )
                     )
                 )
             )
         )),
 
-        DROP(final_state, 1)
+        DROP(final_packed_state, 1)
     )
 );
 
@@ -1386,12 +1356,12 @@ USqrt = LAMBDA(limbs_n, limbs_seed, k,
 NativePrimes = LAMBDA(n,
     IF(n < 2, #NUM!,
         LET(
-            seq, SEQUENCE(n - 1, 1, 2),
-            FILTER(seq, MAP(seq, LAMBDA(x,
+            candidate_sequence, SEQUENCE(n - 1, 1, 2),
+            FILTER(candidate_sequence, MAP(candidate_sequence, LAMBDA(current_candidate,
                 LET(
-                    limit, INT(SQRT(x)),
+                    limit, INT(SQRT(current_candidate)),
                     IF(limit < 2, TRUE,
-                        MIN(MOD(x, SEQUENCE(limit - 1, 1, 2))) > 0
+                        MIN(MOD(current_candidate, SEQUENCE(limit - 1, 1, 2))) > 0
                     )
                 )
             )))
@@ -1400,22 +1370,22 @@ NativePrimes = LAMBDA(n,
 );
 
 /**
- * [Internal] Unsafe, high-performance text multiplication for trusted, positive BigInt strings.
+ * [Internal] Unsafe, high-performance text multiplication for normalised, positive BigInt strings.
  * Bypasses Layer 0 validation. Implements strict short-circuits for padding optimization.
- * @param str_a The first trusted BigInt string.
- * @param str_b The second trusted BigInt string.
+ * @param norm_a
+ * @param norm_b
  */
-UTextMul = LAMBDA(str_a, str_b,
-    IF(OR(str_a = "0", str_b = "0"), "0",
-    IF(str_a = "1", str_b,
-    IF(str_b = "1", str_a,
+UTextMul = LAMBDA(norm_a, norm_b,
+    IF(OR(norm_a = "0", norm_b = "0"), "0",
+    IF(norm_a = "1", norm_b,
+    IF(norm_b = "1", norm_a,
         LET(
-            len_a, LEN(str_a),
-            len_b, LEN(str_b),
+            len_a, LEN(norm_a),
+            len_b, LEN(norm_b),
             k, core_BigInt.SafeK("MUL", MIN(len_a, len_b)),
 
-            limbs_a, core_BigInt.Split(str_a, k),
-            limbs_b, core_BigInt.Split(str_b, k),
+            limbs_a, core_BigInt.Split(norm_a, k),
+            limbs_b, core_BigInt.Split(norm_b, k),
 
             final_limbs, core_BigInt.UMul(limbs_a, limbs_b, k),
 
@@ -1427,22 +1397,22 @@ UTextMul = LAMBDA(str_a, str_b,
 /**
  * [Internal] Vectorized logarithmic product of an array of BigInt strings.
  * Recursively cuts the array in half to bypass REDUCE sequential memory allocations.
- * @param text_arr A 1D vertical array of BigInt strings.
+ * @param arr_strings A 1D vertical array of BigInt strings.
  */
-TextTreeProd = LAMBDA(text_arr,
+TextTreeProd = LAMBDA(arr_strings,
     LET(
-        n, ROWS(text_arr),
+        num_elements, ROWS(arr_strings),
 
-        IF(n = 1, INDEX(text_arr, 1, 1),
+        IF(num_elements = 1, INDEX(arr_strings, 1, 1),
             LET(
                 // Reshape array into pairs. Odd-length arrays are safely padded with the multiplicative identity "1"
-                paired, WRAPROWS(text_arr, 2, "1"),
+                paired_strings, WRAPROWS(arr_strings, 2, "1"),
 
                 // Vectorized multiplication across all pairs simultaneously
-                next_arr, BYROW(paired, LAMBDA(row, UTextMul(INDEX(row, 1, 1), INDEX(row, 1, 2)))),
+                reduced_array, BYROW(paired_strings, LAMBDA(row, UTextMul(INDEX(row, 1, 1), INDEX(row, 1, 2)))),
 
                 // Shallow recursion
-                core_BigInt.TextTreeProd(next_arr)
+                core_BigInt.TextTreeProd(reduced_array)
             )
         )
     )
@@ -1456,9 +1426,9 @@ TextTreeProd = LAMBDA(text_arr,
 NativeSwingExponents = LAMBDA(n, primes,
     MAP(primes, LAMBDA(p,
         LET(
-            max_k, INT(LOG(n, p)),
-            powers, p ^ SEQUENCE(max_k),
-            SUM(MOD(INT(n / powers), 2))
+            max_power_k, INT(LOG(n, p)),
+            prime_powers, p ^ SEQUENCE(max_power_k),
+            SUM(MOD(INT(n / prime_powers), 2))
         )
     ))
 );
@@ -1470,20 +1440,20 @@ NativeSwingExponents = LAMBDA(n, primes,
  */
 SwingTerm = LAMBDA(n, tier_primes,
     LET(
-        exponents, core_BigInt.NativeSwingExponents(n, tier_primes),
-        is_greater_than_zero, exponents > 0,
+        swing_exponents, core_BigInt.NativeSwingExponents(n, tier_primes),
+        has_native_exponent, swing_exponents > 0,
 
         // If all exponents are 0, the swing term is 1.
-        IF(AND(NOT(is_greater_than_zero)), "1",
+        IF(AND(NOT(has_native_exponent)), "1",
             LET(
-                filtered_primes, FILTER(tier_primes, is_greater_than_zero),
-                filtered_exps, FILTER(exponents, is_greater_than_zero),
+                active_primes, FILTER(tier_primes, has_native_exponent),
+                active_exponents, FILTER(swing_exponents, has_native_exponent),
 
-                prime_powers, MAP(filtered_primes, filtered_exps, LAMBDA(p, e,
+                evalutated_prime_powers, MAP(active_primes, active_exponents, LAMBDA(p, e,
                     IF(e = 1, p & "", BigInt.Pow(p & "", e & ""))
                 )),
 
-                core_BigInt.TextTreeProd(prime_powers)
+                core_BigInt.TextTreeProd(evalutated_prime_powers)
             )
         )
     )
@@ -1497,17 +1467,17 @@ SwingTerm = LAMBDA(n, tier_primes,
 PrimeSwingKernel = LAMBDA(n, global_primes,
     IF(n < 2, "1",
         LET(
-            half_n, INT(n / 2),
-            half_fact, core_BigInt.PrimeSwingKernel(half_n, global_primes),
+            floor_half_n, INT(n / 2),
+            factorial_half_n, core_BigInt.PrimeSwingKernel(floor_half_n, global_primes),
 
             // Square the halfway point using the unsafe kernel
-            squared_half, core_BigInt.UTextMul(half_fact, half_fact),
+            squared_half_factorial, core_BigInt.UTextMul(factorial_half_n, factorial_half_n),
 
             // Isolate the primes needed for this tier and calculate the swing term
-            tier_primes, FILTER(global_primes, global_primes <= n),
-            swing, core_BigInt.SwingTerm(n, tier_primes),
+            applicable_tier_primes, FILTER(global_primes, global_primes <= n),
+            str_swing_term, core_BigInt.SwingTerm(n, applicable_tier_primes),
 
-            core_BigInt.UTextMul(squared_half, swing)
+            core_BigInt.UTextMul(squared_half_factorial, str_swing_term)
         )
     )
 );
@@ -1517,214 +1487,35 @@ PrimeSwingKernel = LAMBDA(n, global_primes,
  * @param col A 1D vertical array of normalized BigInt strings.
  * @param mode 1 for Maximum, -1 for Minimum.
  */
-TreeCompare = LAMBDA(col, mode,
+TreeCompare = LAMBDA(str_norms, comparison_mode,
     LET(
-        n, ROWS(col),
+        num_rows, ROWS(str_norms),
 
-        IF(n = 1, INDEX(col, 1, 1),
+        IF(num_rows = 1, INDEX(str_norms, 1, 1),
             LET(
-                paired, WRAPROWS(col, 2, "#PAD#"),
-                col_a, TAKE(paired, , 1),
-                col_b, TAKE(paired, , -1),
+                tournament_pairs, WRAPROWS(str_norms, 2),
+                competitors_a, TAKE(tournament_pairs, , 1),
+                competitors_b, TAKE(tournament_pairs, , -1),
 
-                winners, MAP(col_a, col_b, LAMBDA(a, b,
-                    IF(b = "#PAD#", a,
+                round_winners, MAP(competitors_a, competitors_b, LAMBDA(a, b,
+                    IF(ISNA(b), a,
                         LET(
-                            comp, BigInt.Compare(a, b),
-                            IF(comp * mode >= 0, a, b)
+                            comparison_result, BigInt.Compare(a, b),
+                            IF(comparison_result * comparison_mode >= 0, a, b)
                         )
                     )
                 )),
 
-                core_BigInt.TreeCompare(winners, mode)
+                core_BigInt.TreeCompare(round_winners, comparison_mode)
             )
         )
     )
 );
 ```
 
-```excel
-////////////////////////////////////
-// Big Integer Arithmetic Library //
-//       test_BigInt Module       //
-//       Private Testing API      //
-////////////////////////////////////
-
-KnuthDivision=LAMBDA(a, b,
-    LET(
-        k, core_BigInt.SafeK("DIV"),
-        packed, core_BigInt.KnuthDiv(core_BigInt.Split(a, k), core_BigInt.Split(b, k), k),
-
-        core_BigInt.Merge(DROP(packed, INDEX(packed, 1, 1) + 1), k)
-    )
-);
-
-NewtonRaphsonDivision = LAMBDA(a, b,
-    LET(
-        k, core_BigInt.SafeK("DIV"),
-        packed, core_BigInt.NewtonRaphsonDiv(core_BigInt.Split(a, k), core_BigInt.Split(b, k), k),
-
-        core_BigInt.Merge(DROP(packed, INDEX(packed, 1, 1) + 1), k)
-    )
-);
-
-/**
- * @param a The dividend string
- * @param b The divisor string
- * @param mode "KNUTH" or "NR"
- * @param iters Inner loop count (to defeat chunky clock resolution)
- * @param repeats Outer loop count (to defeat OS/Garbage Collection noise)
- */
-DivisionAlgorithms = LAMBDA(a, b, mode, iters, repeats,
-    LET(
-        // Map the outer repeats loop
-        batch_times, MAP(SEQUENCE(repeats), LAMBDA(r,
-            LET(
-                start, NOW(),
-
-                // Map the inner execution loop
-                run, IF(mode = "KNUTH",
-                        MAP(SEQUENCE(iters), LAMBDA(i, KnuthDivision(a, b))),
-                        MAP(SEQUENCE(iters), LAMBDA(i, NewtonRaphsonDivision(a, b)))
-                ),
-
-                // Force evaluation before pulling stop time
-                stop, NOW() + (0 * LEN(INDEX(run, 1, 1))),
-
-                // Total batch time in milliseconds
-                (stop - start) * 86400000
-            )
-        )),
-
-        // Extract the cleanest run and average it down to a single execution time
-        MIN(batch_times) / iters
-    )
-);
-
-/**
- * Executes a strictly sequential benchmark suite to avoid multi-threading contamination.
- * @param test_cases An N x 2 array of test lengths: [Length_A, Length_B]
- * @param iters Number of iterations per benchmark to smooth NOW() resolution.
- */
-DivisionAlgorithmComparison = LAMBDA(test_cases, iters, repeats,
-    LET(
-        n_tests, ROWS(test_cases),
-
-        // Initial state: Data headers for CSV export
-        initial, {"Len_A", "Len_B", "Knuth_ms", "NR_ms"},
-
-        REDUCE(initial, SEQUENCE(n_tests), LAMBDA(acc, i,
-            LET(
-                len_a, INDEX(test_cases, i, 1),
-                len_b, INDEX(test_cases, i, 2),
-
-                // Skip Divisor > Dividend—it's never an integer
-                IF(len_b > len_a,
-                    acc,
-                    LET(
-                        // Generate exact-length test strings natively
-                        str_a, REPT("9", len_a),
-                        str_b, IF(len_b = 1, "7", "7" & REPT("3", len_b - 1)),
-
-                        // Execute benchmarks strictly one after the other
-                        time_k, DivisionAlgorithms(str_a, str_b, "KNUTH", iters, repeats),
-                        time_nr, DivisionAlgorithms(str_a, str_b, "NR", iters, repeats),
-
-                        // Append the results.
-                        // Reallocation delay occurs here, safely outside the timed window.
-                        VSTACK(acc, HSTACK(len_a, len_b, time_k, time_nr))
-                    )
-                )
-            )
-        ))
-    )
-);
-
-// Generates a 2-column array of every combination of lengths
-DivisionBenchmarkCases = LAMBDA(start_len, max_len, step,
-    LET(
-        seq, SEQUENCE((max_len - start_len) / step + 1, 1, start_len, step),
-        n, ROWS(seq),
-
-        // Cartesian Join
-        col_a, TOCOL(IF(SEQUENCE(1, n), seq)),
-        col_b, TOCOL(IF(SEQUENCE(n, 1), TOROW(seq))),
-
-        HSTACK(col_a, col_b)
-    )
-);
-
-// Generates a Cartesian grid from two independent sequences
-AsymmetricABGrid = LAMBDA(start_a, max_a, step_a, start_b, max_b, step_b,
-    LET(
-        seq_a, SEQUENCE((max_a - start_a) / step_a + 1, 1, start_a, step_a),
-        seq_b, SEQUENCE((max_b - start_b) / step_b + 1, 1, start_b, step_b),
-
-        n_a, ROWS(seq_a),
-        n_b, ROWS(seq_b),
-
-        // Orthogonal broadcast using independent dimensions
-        col_a, TOCOL(IF(SEQUENCE(1, n_b), seq_a)),
-        col_b, TOCOL(IF(SEQUENCE(n_a), TOROW(seq_b))),
-
-        HSTACK(col_a, col_b)
-    )
-);
-
-FactorialAlgorithms = LAMBDA(input, mode, iters, repeats,
-    LET(
-        // Map the outer repeats loop
-        batch_times, MAP(SEQUENCE(repeats), LAMBDA(r,
-            LET(
-                start, NOW(),
-
-                // Map the inner execution loop
-                run, IF(mode = "Legendre",
-                        MAP(SEQUENCE(iters), LAMBDA(i, BigInt.Fact(input))),
-                        MAP(SEQUENCE(iters), LAMBDA(i, BigInt.FactSwing(input)))
-                ),
-
-                // Force evaluation before pulling stop time
-                stop, NOW() + (0 * LEN(INDEX(run, 1, 1))),
-
-                // Total batch time in milliseconds
-                (stop - start) * 86400000
-            )
-        )),
-
-        // Extract the cleanest run and average it down to a single execution time
-        MIN(batch_times) / iters
-    )
-);
-
-/**
- * Executes a strictly sequential benchmark suite to avoid multi-threading contamination.
- * @param test_cases An N x 1 array of test inputs
- * @param iters Number of iterations per sample to smooth NOW() resolution.
- * @param repeats Number of iterations per benchmark to smooth OS and background noise.
- */
-FactorialComparison = LAMBDA(test_cases, iters, repeats,
-    LET(
-        n_tests, ROWS(test_cases),
-
-        // Initial state: Data headers for CSV export
-        initial, {"N", "Legendre", "Swing"},
-
-        REDUCE(initial, SEQUENCE(n_tests), LAMBDA(acc, i,
-            LET(
-                input, INDEX(test_cases, i, 1),
-                // Execute benchmarks strictly one after the other
-                time_legendre, FactorialAlgorithms(input, "Legendre", iters, repeats),
-                time_swing, FactorialAlgorithms(input, "Swing", iters, repeats),
-
-                // Append the results.
-                // Reallocation delay occurs here, safely outside the timed window.
-                VSTACK(acc, HSTACK(input, time_legendre, time_swing))
-            )
-        ))
-    )
-);
-```
-
 ## Current Priority
-Continue with the roadmap and verify that the little-endian contract is observed appropriately.
+Continue with the roadmap and:
+1. Review the documentation.
+2. Enforce a strict 2-line limit on doc strings to support tooltips.
+3. Ensure in-line comments are provided where necessary.
+4. Ensure in-line comments document "why" the code is there, not "what" it does.
