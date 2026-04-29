@@ -246,34 +246,41 @@ The foundational building blocks used by Layers 0, 1, and 2.
   - [X] Implement `BigInt.Fact`.
   - [X] Range helpers (`BigInt.Min`, `BigInt.Max`).
   - [X] Abuse-testing Excel engine (Tens of thousands of digits).
-- [ ] **Phase 8 — Architectural Polish & Internal Diagnostics**
+- [X] **Phase 8 — Architectural Polish**
   - [X] Audite and refine variable nomenclature
-  - [ ] Audit and refine doc-strings and in-line comments.
-  - [ ] Align public and private docstrings to the specification.
-  - [ ] Implement `core_BigInt.DumpState` and other debugging tools to aid troubleshooting.
-- [ ] **Phase 9 — Targeted Hardening & Boundary Stress Testing**
-  - [ ] Develop automated fuzz-testing for the absolute 32,766-character string ceiling.
-  - [ ] Validate garbage collection stability during the hybrid `DivRouter` crossover under massive load.
-  - [ ] Hard-test the 14-digit `SafeK` boundary against silent IEEE-754 precision bleeding.
-- [ ] **Phase 10 — The 48-Bit Binary Engine & Base-N I/O**
+  - [X] Audit and refine doc-strings and in-line comments.
+- [ ] **Phase 9 — Adverse Input & Boundary Hardening (The Forgiving Sanitizer)**
+  - [ ] Refactor `BigInt.Norm` to intercept and reject raw numeric types > 15 digits to prevent silent IEEE-754 truncation.
+  - [ ] Implement text Scientific Notation parsing (safely expanding positive exponents like `"1.2E5"` into `"120000"`, while rejecting fractional evaluations like `"1.2E-2"` or `"1.234E1"`).
+  - [ ] Implement regex sanitization pipeline to safely strip whitespace, commas, and underscores.
+  - [ ] Implement accounting format resolution (`(123)` -> `-123`).
+  - [ ] Implement safe decimal truncation (allow harmless `.000` tails, instantly reject fractional `.45` tails).
+  - [ ] Implement Layer 0 predictive limit checks for computationally heavy functions (`Mul`, `Pow`, `Fact`) to intercept 32k+ character blowouts before engaging the internal engine.
+- [ ] **Phase 10 — Layer 0 Dynamic Broadcasting (The Matrix Router)**
+  - [ ] Implement `core_BigInt.Broadcast(a, b, core_lambda)` to intercept inputs before the core engine.
+  - [ ] Program the router to natively evaluate dimensions and apply `MAP` for arrays of the exact same size.
+  - [ ] Program the router to utilize `MAKEARRAY` and `INDEX` to seamlessly generate 2D outer-product grids when fed orthogonal 1D arrays (Row $\times$ Column).
+  - [ ] Refactor Layer 0 wrappers (`BigInt.Add`, `BigInt.Sub`, `BigInt.Mul`, `BigInt.Div`, `BigInt.Pow`) to route through `core_BigInt.Broadcast`, ensuring strict element-wise operations.
+  - [ ] Establish architecture for future `BigInt.MMult` to isolate true linear algebra from standard element-wise multiplication.
+- [ ] **Phase 11 — The 48-Bit Binary Engine & Base-N I/O**
   - [ ] Implement `core_BigInt.ToBase2Array`: Converts base-10 strings to little-endian arrays of 48-bit integers via a Hybrid Radix Router.
   - [ ] Implement `core_BigInt.FromBase2Array`: Merges 48-bit integer arrays back to base-10 strings.
   - [ ] Implement `BigInt.ToHex` and `BigInt.FromHex`.
   - [ ] Implement `BigInt.ToBinary` and `BigInt.FromBinary` (Public text boundary wrappers).
-- [ ] **Phase 11 — Native Bitwise Operations**
+- [ ] **Phase 12 — Native Bitwise Operations**
   - [ ] Implement `BigInt.BitAnd`, `BigInt.BitOr`, and `BigInt.BitXor` (Vectorized natively across 48-bit arrays to prevent boundary shear).
   - [ ] Implement `BigInt.ShiftLeft` and `BigInt.ShiftRight`.
   - [ ] Implement `BigInt.TestBit` and `BigInt.BitLength`.
-- [ ] **Phase 12 — Binary-Optimized Algorithms**
+- [ ] **Phase 13 — Binary-Optimized Algorithms**
   - [ ] Implement `BigInt.GCD` utilizing Stein’s Algorithm (Binary GCD) via the new bitwise primitives, bypassing the division router.
   - [ ] Implement `BigInt.LCM` natively via `(A * B) / GCD(A, B)`.
   - [ ] Implement `BigInt.ModPow` (Modular Exponentiation) utilizing bitwise shifts for the exponent and continuous modulo wrapping.
   - [ ] Implement `BigInt.ModInverse` via the Extended Euclidean algorithm.
-- [ ] **Phase 13 — Combinatorics, Probability & Cryptography**
+- [ ] **Phase 14 — Combinatorics, Probability & Cryptography**
   - [ ] Implement `BigInt.RandBetween(min, max)` ensuring uniform mathematical distribution without modulo bias.
   - [ ] Implement `BigInt.Combinations` and `BigInt.Permutations` mapped through the Prime Swing factorial kernel.
   - [ ] Implement `BigInt.IsPrime` using a deterministic Miller-Rabin test powered by the `ModPow` kernel.
-- [ ] **Phase 14 — Serialization & Formatted Output**
+- [ ] **Phase 15 — Serialization & Formatted Output**
   - [ ] Implement `BigInt.Format` to cleanly inject thousands separators or custom delimiters into output strings.
   - [ ] Implement `BigInt.ChunkExport` to automatically slice outputs exceeding 32,767 characters across multiple contiguous cells.
 
@@ -289,4 +296,4 @@ The library is implemented across three modules. First, `BigInt`, the public API
 ```
 
 ## Current Priority
-Continue with the roadmap.
+Continue with the roadmap, let's explore layer 0 weaknesses and strategies to harden against them. Do not write any code yet. Let's discuss the design, and once aligned, write the code to achieve it.
