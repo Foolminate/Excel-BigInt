@@ -250,11 +250,11 @@ The foundational building blocks used by Layers 0, 1, and 2.
   - [X] Audite and refine variable nomenclature
   - [X] Audit and refine doc-strings and in-line comments.
 - [ ] **Phase 9 — Adverse Input & Boundary Hardening (The Forgiving Sanitizer)**
-  - [ ] Refactor `BigInt.Norm` to intercept and reject raw numeric types > 15 digits to prevent silent IEEE-754 truncation.
-  - [ ] Implement text Scientific Notation parsing (safely expanding positive exponents like `"1.2E5"` into `"120000"`, while rejecting fractional evaluations like `"1.2E-2"` or `"1.234E1"`).
-  - [ ] Implement regex sanitization pipeline to safely strip whitespace, commas, and underscores.
-  - [ ] Implement accounting format resolution (`(123)` -> `-123`).
-  - [ ] Implement safe decimal truncation (allow harmless `.000` tails, instantly reject fractional `.45` tails).
+  - [X] Refactor `BigInt.Norm` to intercept and reject raw numeric types > 15 digits to prevent silent IEEE-754 truncation.
+  - [X] Implement text Scientific Notation parsing (safely expanding positive exponents like `"1.2E5"` into `"120000"`, while rejecting fractional evaluations like `"1.2E-2"` or `"1.234E1"`).
+  - [X] Implement regex sanitization pipeline to safely strip whitespace, commas, and underscores.
+  - [X] Implement accounting format resolution (`(123)` -> `-123`).
+  - [X] Implement safe decimal truncation (allow harmless `.000` tails, instantly reject fractional `.45` tails).
   - [ ] Implement Layer 0 predictive limit checks for computationally heavy functions (`Mul`, `Pow`, `Fact`) to intercept 32k+ character blowouts before engaging the internal engine.
 - [ ] **Phase 10 — Layer 0 Dynamic Broadcasting (The Matrix Router)**
   - [ ] Implement `core_BigInt.Broadcast(a, b, core_lambda)` to intercept inputs before the core engine.
